@@ -33,6 +33,8 @@ export async function initDB(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`
+  // Hash of the private edit key the submitting browser keeps (edit, never a second form).
+  await sql`ALTER TABLE sd_entries ADD COLUMN IF NOT EXISTS edit_hash TEXT`
   // One form per employee.
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS sd_entries_emp ON sd_entries (upper(emp_code))`
   await sql`CREATE INDEX IF NOT EXISTS sd_entries_no ON sd_entries (jersey_no)`
@@ -42,6 +44,19 @@ export async function initDB(): Promise<void> {
       value JSONB NOT NULL
     )`
   await sql`INSERT INTO sd_settings (key, value) VALUES ('main', ${sql.json(DEFAULT_SETTINGS)}) ON CONFLICT (key) DO NOTHING`
+  // The draw list: who is in which colour (from Smile's Excel).
+  await sql`
+    CREATE TABLE IF NOT EXISTS sd_members (
+      id         SERIAL PRIMARY KEY,
+      emp_code   TEXT NOT NULL UNIQUE,
+      title      TEXT NOT NULL DEFAULT '',
+      first_name TEXT NOT NULL,
+      last_name  TEXT NOT NULL DEFAULT '',
+      nickname   TEXT NOT NULL DEFAULT '',
+      branch     TEXT NOT NULL DEFAULT '',
+      team       TEXT NOT NULL CHECK (team IN ('blue', 'pink', 'green')),
+      sort       INT NOT NULL DEFAULT 0
+    )`
   await sql`
     CREATE TABLE IF NOT EXISTS sd_sessions (
       token      TEXT PRIMARY KEY,

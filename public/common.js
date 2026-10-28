@@ -77,9 +77,9 @@ function openModal(html, { wide = false } = {}) {
 }
 
 function sizeChartHTML(sizes) {
-  return `<div class="modal-head"><h3>ตารางไซส์เสื้อ</h3><button class="icon-btn" data-close aria-label="ปิด">✕</button></div>
+  return `<div class="modal-head"><h3>ตารางไซซ์เสื้อ</h3><button class="icon-btn" data-close aria-label="ปิด">✕</button></div>
     <p class="muted">เสื้อโปโล คอปก/จีน กระดุม · หน่วยเป็นนิ้ว อาจมีบวก/ลบ 1 นิ้ว</p>
-    <table class="chart"><thead><tr><th>ไซส์</th><th>รอบอก</th><th>ความยาว</th></tr></thead>
+    <table class="chart"><thead><tr><th>ไซซ์</th><th>รอบอก</th><th>ความยาว</th></tr></thead>
     <tbody>${sizes.map((s) => `<tr><td><b>${esc(s.id)}</b></td><td>${s.chest}</td><td>${s.length}</td></tr>`).join("")}</tbody></table>
-    <details class="chart-img"><summary>ดูรูปตารางไซส์ต้นฉบับ</summary><img src="/size-chart.jpg" alt="ตารางไซส์เสื้อโปโล คอปก/จีน กระดุม" loading="lazy"></details>`
+    <details class="chart-img"><summary>ดูรูปตารางไซซ์ต้นฉบับ</summary><img src="/size-chart.jpg" alt="ตารางไซซ์เสื้อโปโล คอปก/จีน กระดุม" loading="lazy"></details>`
 }

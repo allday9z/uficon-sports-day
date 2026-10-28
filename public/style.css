@@ -252,8 +252,67 @@ table.chart tbody tr:nth-child(even) td { background: var(--canvas); }
   .entries td { border: 0; padding: .05rem 0; }
   .entries td:first-child { position: absolute; left: 0; top: .9rem; width: auto; }
   .entries td[data-l="ชื่อ-นามสกุล"], .entries td[data-l="รหัส"], .entries td[data-l="ส่งเมื่อ"] { font-size: .86rem; color: var(--ink-3); }
-  .entries td[data-l="สี"], .entries td[data-l="ไซส์"] { display: inline-block; width: auto; margin-right: .5rem; }
-  .entries td[data-l="ไซส์"]::before { content: "ไซส์ "; color: var(--ink-3); font-weight: 400; }
+  .entries td[data-l="สี"], .entries td[data-l="ไซซ์"] { display: inline-block; width: auto; margin-right: .5rem; }
+  .entries td[data-l="ไซซ์"]::before { content: "ไซซ์ "; color: var(--ink-3); font-weight: 400; }
   .entries .acts { text-align: left; margin-top: .45rem; }
 }
 @media (max-width: 520px) { .sizes-tbl .dim { display: none; } .tbl th, .tbl td { padding-left: .4rem; padding-right: .4rem; } }
+
+/* members (admin) */
+.member-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: .9rem 0; }
+.msum { border-left: 5px solid var(--c); background: var(--canvas); border-radius: 12px; padding: .6rem .8rem; display: flex; flex-direction: column; }
+.msum span { color: var(--ink-3); font-size: .86rem; }
+@media (max-width: 600px) { .member-sum { grid-template-columns: 1fr; } }
+.members-box summary { cursor: pointer; font-weight: 600; padding: .4rem 0; }
+.ok-t { color: var(--ok); font-weight: 600; }
+.bad-t { color: var(--bad); font-weight: 600; }
+textarea.paste { min-height: 180px; font: .85rem/1.4 ui-monospace, Menlo, monospace; margin-top: .75rem; resize: vertical; }
+
+/* page tabs in the hero */
+.tabs { display: inline-flex; gap: 4px; margin-top: 1.1rem; background: rgba(255, 255, 255, .1); padding: 4px; border-radius: 12px; }
+.tabs a { color: rgba(255, 255, 255, .8); text-decoration: none; padding: .45rem .95rem; border-radius: 9px; font-weight: 600; font-size: .95rem; white-space: nowrap; }
+.tabs a:hover { color: #fff; }
+.tabs a.on { background: #fff; color: var(--ink); }
+
+/* form extras */
+.btn.cancel { margin-top: .6rem; min-height: 46px; font-size: 1rem; }
+.edit-btn { margin-top: 1.25rem; }
+#empHint .pill { vertical-align: 1px; }
+
+/* สมาชิกแต่ละสี */
+.wrap.wide-teams { max-width: 1320px; }
+.teams-tools { display: flex; gap: .8rem; align-items: center; padding: 1rem; margin-bottom: 1rem; }
+.teams-tools .input { flex: 1; min-height: 44px; }
+.team-tabs { display: none; }
+.team-tabs button { display: inline-flex; align-items: center; }
+.team-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.team-col { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.team-head { background: var(--c); color: #fff; padding: 1rem 1.1rem .9rem; }
+.team-head h2 { font-size: 1.5rem; }
+.team-head span { font-size: .9rem; opacity: .92; }
+.progress { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, .3); margin-top: .55rem; overflow: hidden; }
+.progress i { display: block; height: 100%; background: #fff; border-radius: 99px; }
+.roster { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.roster th { text-align: left; font-size: .76rem; color: var(--ink-3); font-weight: 600; padding: .55rem .5rem; border-bottom: 1.5px solid var(--line); white-space: nowrap; }
+.roster td { padding: .5rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.roster tbody tr:nth-child(even) td { background: #FAFAFB; }
+.roster .n { color: var(--ink-3); width: 2rem; text-align: right; font-variant-numeric: tabular-nums; }
+.roster .nm { font-weight: 500; }
+.roster .br { color: var(--ink-3); font-size: .82rem; white-space: nowrap; }
+.roster th:last-child, .roster td:last-child { text-align: center; width: 3rem; }
+.jno.sm { min-width: 32px; height: 26px; font-size: .9rem; border-radius: 7px; }
+.wait { color: #C2C6CD; }
+.tag { display: inline-block; font-size: .7rem; padding: 0 .4rem; border-radius: 6px; background: var(--canvas); color: var(--ink-3); vertical-align: 1px; }
+@media (max-width: 1060px) {
+  .team-tabs { display: inline-flex; }
+  .team-cols { grid-template-columns: minmax(0, 1fr); }
+  .team-col { display: none; }
+  .team-col.active { display: block; }
+}
+@media (max-width: 600px) {
+  .teams-tools { flex-direction: column; align-items: stretch; }
+  .team-tabs { justify-content: stretch; }
+  .team-tabs button { flex: 1; justify-content: center; }
+  .roster .br { display: none; }
+  .roster th:nth-child(4) { display: none; }
+}
