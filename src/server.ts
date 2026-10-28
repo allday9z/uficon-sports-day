@@ -332,5 +332,6 @@ app.onError((err, c) => {
 
 await initDB()
 console.log(`[sports-day] listening on :${PORT}${SETUP_CODE ? "" : " (ADMIN_SETUP_CODE not set — the admin password can't be created)"}${(await adminHash()) ? " — admin password set" : ""}`)
-export default { port: PORT, hostname: process.env.HOST ?? "0.0.0.0", fetch: app.fetch }
+// HOST=127.0.0.1 for local runs; unset = every interface (IPv4 and IPv6) in the container.
+export default { port: PORT, ...(process.env.HOST ? { hostname: process.env.HOST } : {}), fetch: app.fetch }
 export { app }
