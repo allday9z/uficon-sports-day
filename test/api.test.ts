@@ -190,7 +190,7 @@ describe("members per colour", () => {
     expect(dry.count).toBe(3)
     expect((await req("/api/admin/members/import", { body: { text: paste } })).status).toBe(200)
     const teams = ((await (await req("/api/members")).json()) as any).teams
-    expect(teams[0].members.slice(0, 2).map((m: any) => m.name)).toEqual(["นายธารี ตรีรัศมีพร", "นายไกรสิทธิ์ ลีปัสสา"])
+    expect(teams[0].members.slice(0, 2).map((m: any) => m.name)).toEqual(["ธารี ตรีรัศมีพร", "ไกรสิทธิ์ ลีปัสสา"])
     expect(teams[0].members[0]).not.toHaveProperty("emp_code")
   })
 

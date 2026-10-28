@@ -164,7 +164,8 @@ app.put("/api/entries/mine", async (c) => {
 })
 
 // ── team members ──────────────────────────────────────────────────────────────
-const fullName = (m: any) => [m.title, m.first_name, m.last_name].filter(Boolean).join(" ").replace(/^(นาย|นางสาว|นาง)\s/, "$1")
+// No title (นาย / นางสาว / นาง) on the members page and in Excel (Smile, 28 Oct 2026).
+const fullName = (m: any) => [m.first_name, m.last_name].filter(Boolean).join(" ")
 
 /** Members per colour + who has sent the form. Form entries not in the list are added at the end. */
 app.get("/api/members", async (c) => {
