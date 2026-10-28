@@ -75,10 +75,10 @@ function renderForm() {
       <div class="q" data-field="nickname">
         <label class="q-title" for="nickname"><span class="num">4</span>ชื่อเล่นที่ต้องการสกรีนบนเสื้อ</label>
         <div class="input-count">
-          <input id="nickname" name="nickname" class="input" autocomplete="nickname" maxlength="${nickMax * 3}" placeholder="เช่น SMILE หรือ สไมล์" required />
+          <input id="nickname" name="nickname" class="input" autocomplete="nickname" maxlength="${nickMax * 3}" placeholder="เช่น SMILE" autocapitalize="characters" spellcheck="false" lang="en" required />
           <span class="count" id="nickCount">0/${nickMax}</span>
         </div>
-        <p class="hint">สกรีนตามที่พิมพ์ทุกตัวอักษร (ตัวพิมพ์ใหญ่/เล็ก ภาษาไทย/อังกฤษ) ไม่เกิน ${nickMax} ตัวอักษร</p>
+        <p class="hint"><b>ภาษาอังกฤษเท่านั้น</b> ไม่เกิน ${nickMax} ตัวอักษร · สกรีนตามที่พิมพ์ (ตัวพิมพ์ใหญ่/เล็ก)</p>
         <p class="err" hidden></p>
       </div>
 
@@ -152,6 +152,7 @@ function onInput(e) {
   state.form[el.name] = el.type === "radio" ? $(`input[name="${el.name}"]:checked`)?.value ?? "" : el.value
   clearError(el.name)
   if (el.name === "nickname") {
+    if (/[^\x00-\x7F]/.test(el.value)) showError("nickname", "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษเท่านั้น")
     const n = graphemes(el.value.trim())
     const c = $("#nickCount")
     c.textContent = `${n}/${state.cfg.nickMax}`
@@ -261,6 +262,7 @@ function validate() {
   const n = graphemes(f.nickname.trim())
   if (!n) errs.push(["nickname", "กรุณากรอกชื่อเล่นที่จะสกรีนบนเสื้อ"])
   else if (n > state.cfg.nickMax) errs.push(["nickname", `ชื่อเล่นบนเสื้อยาวได้ไม่เกิน ${state.cfg.nickMax} ตัวอักษร`])
+  else if (!/^[A-Za-z][A-Za-z .'\-]*$/.test(f.nickname.trim())) errs.push(["nickname", "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษเท่านั้น (A–Z เว้นวรรค จุด หรือขีดได้)"])
   if (!/^[0-9]{2}$/.test(f.jersey_no)) errs.push(["jersey_no", "กรุณาใส่หมายเลข 2 หลัก (00–99) เช่น 07"])
   else if (isTaken(f.jersey_no) && (state.cfg.scope !== "team" || state.takenFor === f.team)) errs.push(["jersey_no", `หมายเลข ${f.jersey_no} มีคนเลือกไปแล้ว กรุณาเลือกหมายเลขใหม่`])
   if (!f.size) errs.push(["size", "กรุณาเลือกไซซ์เสื้อ"])

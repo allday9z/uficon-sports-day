@@ -31,6 +31,8 @@ const clean = (v: unknown, max: number) => String(v ?? "").normalize("NFC").repl
 const chars = (s: string) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s)].length
 
 export const NICK_MAX = 12
+export const NICK_RE = /^[A-Za-z][A-Za-z .'\-]*$/
+const NICK_ERR = "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษเท่านั้น (A–Z เว้นวรรค จุด หรือขีดได้)"
 
 /** Employee codes are numbers shown with 4 digits (0000). "4" and "0004" are the same person. */
 export function normEmpCode(v: unknown): string | null {
@@ -55,7 +57,8 @@ export function cleanEntry(b: any): Entry | Problem {
   const nickname = clean(b?.nickname, 40)
   if (!nickname) return { field: "nickname", error: "กรุณากรอกชื่อเล่นที่จะสกรีนบนเสื้อ" }
   if (chars(nickname) > NICK_MAX) return { field: "nickname", error: `ชื่อเล่นบนเสื้อยาวได้ไม่เกิน ${NICK_MAX} ตัวอักษร` }
-  if (!/^[\p{L}\p{M}\p{N} .'\-]+$/u.test(nickname)) return { field: "nickname", error: "ชื่อเล่นใช้ได้เฉพาะตัวอักษร ตัวเลข เว้นวรรค จุด และขีด" }
+  // English only on the shirt (Smile, 28 Oct 2026).
+  if (!NICK_RE.test(nickname)) return { field: "nickname", error: NICK_ERR }
 
   const jersey_no = String(b?.jersey_no ?? "").trim()
   if (!/^[0-9]{2}$/.test(jersey_no)) return { field: "jersey_no", error: "หมายเลขเสื้อต้องเป็นตัวเลข 2 หลัก (00–99) เช่น 07" }
