@@ -163,7 +163,7 @@ function renderDashboard() {
 function pasteMembers() {
   const close = openModal(`
     <div class="modal-head"><h3>วางรายชื่อจาก Excel</h3><button class="icon-btn" data-close aria-label="ปิด">✕</button></div>
-    <p class="muted sm">เลือกแถวในไฟล์ Excel ตั้งแต่คอลัมน์ ID ถึง สีทีม (ID, คำนำหน้า, ชื่อ, สกุล, ชื่อเล่น, สาขา, สีทีม) แล้วคัดลอกมาวางทั้ง 3 สีพร้อมกันได้ คอลัมน์ No. และแถวหัวตารางจะถูกข้ามให้เอง</p>
+    <p class="muted sm">เลือกแถวในไฟล์ Excel ตั้งแต่คอลัมน์ ID ถึง สีทีม (ID, คำนำหน้า, ชื่อ, สกุล, ชื่อเล่น, สาขา, สีทีม) แล้วคัดลอกมาวางทุกสีพร้อมกันได้ (สีทีม: ฟ้า / ชมพู / เขียว / ดำ หรือ Host) คอลัมน์ No. และแถวหัวตารางจะถูกข้ามให้เอง</p>
     <textarea class="input paste" id="pasteText" rows="9" placeholder="4&#9;นาย&#9;ธารี&#9;…&#9;ฟ้า"></textarea>
     <p class="muted sm" id="pastePreview"></p>
     <p class="err" id="pasteErr" hidden></p>

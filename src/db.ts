@@ -3,6 +3,7 @@
  * shared Coolify Postgres instance used by other apps too.
  */
 import postgres from "postgres"
+import { TEAMS } from "./data"
 
 export const sql = postgres(process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/postgres", {
   max: Number(process.env.PG_MAX ?? 10),
@@ -25,7 +26,7 @@ export async function initDB(): Promise<void> {
       id         SERIAL PRIMARY KEY,
       emp_code   TEXT NOT NULL,
       full_name  TEXT NOT NULL,
-      team       TEXT NOT NULL CHECK (team IN ('blue', 'pink', 'green')),
+      team       TEXT NOT NULL,
       nickname   TEXT NOT NULL,
       jersey_no  TEXT NOT NULL CHECK (jersey_no ~ '^[0-9]{2}$'),
       size       TEXT NOT NULL,
@@ -54,9 +55,15 @@ export async function initDB(): Promise<void> {
       last_name  TEXT NOT NULL DEFAULT '',
       nickname   TEXT NOT NULL DEFAULT '',
       branch     TEXT NOT NULL DEFAULT '',
-      team       TEXT NOT NULL CHECK (team IN ('blue', 'pink', 'green')),
+      team       TEXT NOT NULL,
       sort       INT NOT NULL DEFAULT 0
     )`
+  // Allowed colours follow TEAMS (a 4th, Host, was added later) — rebuilt on every start.
+  const teamList = TEAMS.map((t) => `'${t.id}'`).join(", ")
+  for (const table of ["sd_entries", "sd_members"]) {
+    await sql.unsafe(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${table}_team_check`)
+    await sql.unsafe(`ALTER TABLE ${table} ADD CONSTRAINT ${table}_team_check CHECK (team IN (${teamList}))`)
+  }
   await sql`
     CREATE TABLE IF NOT EXISTS sd_sessions (
       token      TEXT PRIMARY KEY,

@@ -45,7 +45,7 @@ describe("form rules", () => {
 describe("public form", () => {
   it("gives teams, sizes and settings", async () => {
     const r = await (await req("/api/config")).json()
-    expect(r.teams.map((t: any) => t.id)).toEqual(["blue", "pink", "green"])
+    expect(r.teams.map((t: any) => t.id)).toEqual(["blue", "pink", "green", "host"])
     expect(r.sizes.map((s: any) => s.id)).toEqual(["2S", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "5XL", "6XL", "7XL"])
     expect(r).toMatchObject({ open: true, scope: "all" })
   })
@@ -146,7 +146,7 @@ describe("admin", () => {
     const ExcelJS = (await import("exceljs")).default
     const wb = new ExcelJS.Workbook()
     await wb.xlsx.load(await r.arrayBuffer())
-    expect(wb.worksheets.map((w) => w.name)).toEqual(["ทั้งหมด", "สรุปไซซ์เสื้อ", "สีฟ้า", "สีชมพู", "สีเขียว"])
+    expect(wb.worksheets.map((w) => w.name)).toEqual(["ทั้งหมด", "สรุปไซซ์เสื้อ", "สีฟ้า", "สีชมพู", "สีเขียว", "สีดำ (Host)"])
     const all = wb.getWorksheet("ทั้งหมด")!
     expect(all.getCell("F2").value).toBe("07")
     expect(all.rowCount).toBe(3)
@@ -189,6 +189,14 @@ describe("members per colour", () => {
     "1\t576\tนางสาว\tศิริยากร\tฉัตรจินดา\tมาย\tHO\tชมพู",
     "26\t\t\t\t\t\t\tฟ้า",
   ].join("\n")
+
+  it("accepts the Host colour", async () => {
+    const r = await req("/api/entries", { body: person({ emp_code: "9001", team: "host", nickname: "GEAR", jersey_no: "88" }) })
+    expect(r.status).toBe(201)
+    const host = ((await (await req("/api/members")).json()) as any).teams.find((t: any) => t.id === "host")
+    expect(host.members.map((m: any) => m.nickname)).toContain("GEAR")
+    expect(parseRoster("1\t9002\tนาย\tแจ็ค\tทดสอบ\tJACK\tHO\tHost").members[0]?.team).toBe("host")
+  })
 
   it("reads rows pasted from Excel", () => {
     const r = parseRoster(paste)

@@ -47,7 +47,7 @@ button, input, select { font: inherit; color: inherit; }
 .team-dots { margin-top: 1rem; display: flex; align-items: center; gap: .4rem; font-size: .9rem; color: rgba(255, 255, 255, .85); flex-wrap: wrap; }
 .team-dots i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-left: .35rem; }
 .team-dots i:first-child { margin-left: 0; }
-.d-blue { background: var(--blue); } .d-pink { background: var(--pink); } .d-green { background: var(--green); }
+.d-blue { background: var(--blue); } .d-pink { background: var(--pink); } .d-green { background: var(--green); } .d-host { background: #1C1C1E; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .7); }
 @media (max-width: 640px) { .stripes { transform: skewX(-24deg) translateX(84%); } .stripes span { width: 26px; } .lead, .team-dots { max-width: 74%; } }
 
 /* ── layout ───────────────────────────────────────────────────────────── */
@@ -93,7 +93,8 @@ button, input, select { font: inherit; color: inherit; }
 .count.over { color: var(--bad); font-weight: 700; }
 
 /* team tiles */
-.teams { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.teams { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .55rem; }
+@media (max-width: 480px) { .teams { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .team { position: relative; display: flex; flex-direction: column; align-items: center; gap: .45rem; padding: 1rem .5rem .85rem; border: 2px solid var(--line); border-radius: 16px; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; text-align: center; }
 .team input { position: absolute; opacity: 0; pointer-events: none; }
 .team-swatch { width: 44px; height: 44px; border-radius: 50%; background: var(--c); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .12); }
@@ -197,7 +198,7 @@ table.chart tbody tr:nth-child(even) td { background: var(--canvas); }
 .center-link { align-self: center; margin: .75rem 0 0; }
 .admin .wrap > * + * { margin-top: 1.1rem; }
 
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
+.stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .8rem; }
 .stat { --c: var(--ink); background: #fff; border-radius: 16px; box-shadow: var(--shadow); padding: 1rem 1.1rem; border-left: 6px solid var(--c); display: flex; flex-direction: column; }
 .stat span { color: var(--ink-3); font-size: .9rem; }
 .stat b { font: 700 2rem/1.1 var(--head); }
@@ -259,7 +260,7 @@ table.chart tbody tr:nth-child(even) td { background: var(--canvas); }
 @media (max-width: 520px) { .sizes-tbl .dim { display: none; } .tbl th, .tbl td { padding-left: .4rem; padding-right: .4rem; } }
 
 /* members (admin) */
-.member-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: .9rem 0; }
+.member-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: .9rem 0; }
 .msum { border-left: 5px solid var(--c); background: var(--canvas); border-radius: 12px; padding: .6rem .8rem; display: flex; flex-direction: column; }
 .msum span { color: var(--ink-3); font-size: .86rem; }
 @media (max-width: 600px) { .member-sum { grid-template-columns: 1fr; } }
@@ -286,6 +287,7 @@ textarea.paste { min-height: 180px; font: .85rem/1.4 ui-monospace, Menlo, monosp
 .team-tabs { display: none; }
 .team-tabs button { display: inline-flex; align-items: center; }
 .team-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.team-col.host { grid-column: 1 / -1; }
 .team-col { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .team-head { background: var(--c); color: #fff; padding: 1rem 1.1rem .9rem; }
 .team-head h2 { font-size: 1.5rem; }

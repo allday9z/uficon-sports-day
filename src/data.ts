@@ -4,6 +4,8 @@ export const TEAMS = [
   { id: "blue", label: "สีฟ้า", color: "#2F9BEA" },
   { id: "pink", label: "สีชมพู", color: "#EC4D97" },
   { id: "green", label: "สีเขียว", color: "#25B864" },
+  // Host shirts — black for now; คุณเกียร์ and คุณแจ็ค (Smile, 28 Oct 2026)
+  { id: "host", label: "สีดำ (Host)", color: "#1C1C1E" },
 ] as const
 export type TeamId = (typeof TEAMS)[number]["id"]
 
@@ -73,7 +75,7 @@ export function cleanEntry(b: any): Entry | Problem {
 // ── team members (the draw list) ─────────────────────────────────────────────
 export type Member = { emp_code: string; title: string; first_name: string; last_name: string; nickname: string; branch: string; team: TeamId }
 
-const TEAM_WORDS: [RegExp, TeamId][] = [[/ฟ้า|blue/i, "blue"], [/ชมพู|pink/i, "pink"], [/เขียว|green/i, "green"]]
+const TEAM_WORDS: [RegExp, TeamId][] = [[/ฟ้า|blue/i, "blue"], [/ชมพู|pink/i, "pink"], [/เขียว|green/i, "green"], [/ดำ|host|black/i, "host"]]
 export const teamFromText = (s: string): TeamId | null => TEAM_WORDS.find(([re]) => re.test(s))?.[1] ?? null
 
 /** Validate one member row (admin form). */

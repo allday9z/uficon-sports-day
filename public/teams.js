@@ -45,7 +45,7 @@ function renderCols() {
     const sent = t.members.filter((m) => m.sent).length
     const rows = t.members.map((m, i) => ({ ...m, n: i + 1 })).filter((m) => !needle || `${m.name} ${m.nickname}`.toLowerCase().includes(needle))
     return `
-      <section class="team-col${T.tab === t.id ? " active" : ""}" style="--c:${t.color}">
+      <section class="team-col${T.tab === t.id ? " active" : ""}${t.id === "host" ? " host" : ""}" style="--c:${t.color}">
         <header class="team-head">
           <h2>${esc(t.label)}</h2>
           <span>${t.members.length} คน · ส่งฟอร์มแล้ว ${sent}</span>
@@ -55,12 +55,12 @@ function renderCols() {
           <thead><tr><th>No.</th><th>ชื่อ-สกุล</th><th>ชื่อเล่น</th><th>สาขา</th><th title="หมายเลขเสื้อ">เบอร์</th></tr></thead>
           <tbody>${rows.map((m) => `<tr>
             <td class="n">${m.n}</td>
-            <td class="nm">${esc(m.name)}${m.extra ? ' <span class="tag">เพิ่มเติม</span>' : ""}${m.dup ? ' <span class="dup-tag">เลขซ้ำ เลือกใหม่</span>' : ""}</td>
+            <td class="nm">${esc(m.name)}${m.extra && t.id !== "host" ? ' <span class="tag">เพิ่มเติม</span>' : ""}${m.dup ? ' <span class="dup-tag">เลขซ้ำ เลือกใหม่</span>' : ""}</td>
             <td>${esc(m.nickname)}</td>
             <td class="br">${esc(m.branch)}</td>
             <td>${m.sent ? `<span class="jno sm${m.dup ? " dup" : ""}"${m.dup ? ' title="หมายเลขซ้ำกับคนที่ส่งก่อน ต้องเลือกหมายเลขใหม่"' : ""}>${esc(m.jersey_no)}</span>` : '<span class="wait" title="ยังไม่ส่งแบบฟอร์ม">–</span>'}</td>
           </tr>`).join("")}</tbody>
-        </table>` : `<p class="empty">ไม่พบชื่อที่ค้นหา</p>`}
+        </table>` : `<p class="empty">${needle ? "ไม่พบชื่อที่ค้นหา" : "ยังไม่มีคนส่งแบบฟอร์ม"}</p>`}
       </section>`
   }).join("")
 }
