@@ -72,6 +72,25 @@ async function takenNumbers(tx: Q, team: string | null, s: Settings, exceptId = 
   return rows.map((r) => r.jersey_no as string)
 }
 
+/**
+ * Entries that share a number with someone who sent it earlier (possible after the scope was "per colour"
+ * and then switched back, Smile 28 Oct 2026). The earliest sender keeps the number; each later one is a
+ * conflict and must pick a new number. Returns entry id -> the entry that keeps the number.
+ */
+async function conflicts(tx: Q, s: Settings): Promise<Map<number, { jersey_no: string; team: string; nickname: string }>> {
+  const rows = await tx`SELECT id, team, jersey_no, nickname FROM sd_entries ORDER BY created_at, id`
+  const first = new Map<string, any>(), out = new Map<number, any>()
+  for (const r of rows) {
+    const key = s.scope === "team" ? r.team + ":" + r.jersey_no : r.jersey_no
+    const holder = first.get(key)
+    if (holder) out.set(r.id, { jersey_no: holder.jersey_no, team: holder.team, nickname: holder.nickname })
+    else first.set(key, r)
+  }
+  return out
+}
+const conflictMsg = (h: { jersey_no: string; team: string; nickname: string }) =>
+  `หมายเลข ${h.jersey_no} ซ้ำกับ ${h.nickname} (${teamLabel(h.team)}) ที่ส่งก่อน กรุณาเลือกหมายเลขใหม่`
+
 const numberTakenMsg = (no: string, s: Settings, team: string) =>
   s.scope === "team"
     ? `หมายเลข ${no} มีคนใน${teamLabel(team)}เลือกไปแล้ว กรุณาเลือกหมายเลขใหม่`
@@ -89,7 +108,12 @@ async function saveEntry(e: Entry, id: number | null, checkTeam = false): Promis
       }
       const s = await getSettings(tx)
       const taken = await takenNumbers(tx, e.team, s, id ?? 0)
-      if (taken.includes(e.jersey_no)) return { status: 409, body: { field: "jersey_no", error: numberTakenMsg(e.jersey_no, s, e.team), taken } }
+      if (taken.includes(e.jersey_no)) {
+        // Keeping your own number is fine — unless someone sent that number before you.
+        const [cur] = id ? await tx`SELECT jersey_no FROM sd_entries WHERE id = ${id}` : []
+        const keeping = cur?.jersey_no === e.jersey_no && !(await conflicts(tx, s)).has(id!)
+        if (!keeping) return { status: 409, body: { field: "jersey_no", error: numberTakenMsg(e.jersey_no, s, e.team), taken } }
+      }
       const [dupe] = await tx`SELECT id FROM sd_entries WHERE upper(emp_code) = ${e.emp_code} AND id <> ${id ?? 0}`
       if (dupe) return { status: 409, body: { field: "emp_code", error: id ? "รหัสพนักงานนี้มีอยู่ในรายชื่อแล้ว" : "รหัสพนักงานนี้ส่งแบบฟอร์มไปแล้ว หากต้องการแก้ไขข้อมูล กรุณาติดต่อผู้จัดงาน" } }
       const [row] = id
@@ -145,10 +169,31 @@ async function ownEntry(id: unknown, token: unknown) {
 app.post("/api/entries/mine", async (c) => {
   const b = await c.req.json().catch(() => ({}))
   const row = await ownEntry(b.id, b.token)
-  return row ? c.json({ entry: publicRow(row) }) : bad(c, "ไม่พบคำตอบเดิม", 404)
+  if (!row) return bad(c, "ไม่พบคำตอบเดิม", 404)
+  const h = (await conflicts(sql, await getSettings())).get(row.id)
+  return c.json({ entry: publicRow(row), conflict: h ? { ...h, message: conflictMsg(h) } : null })
 })
 
 /** Edit your own answer — the employee code stays the same, so it is never a second form. */
+/** A sender whose number clashes with an earlier one picks a new number with their employee code
+ *  (works from any device; only for entries in conflict, and only the number changes). */
+app.put("/api/entries/renumber", async (c) => {
+  if (limited(`entry:${ip(c)}`, 30, 600_000)) return bad(c, "ส่งบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่", 429)
+  const b = await c.req.json().catch(() => ({}))
+  const code = normEmpCode(b.emp_code)
+  const [row] = code ? await sql`SELECT * FROM sd_entries WHERE emp_code = ${code}` : []
+  if (!row) return bad(c, "ไม่พบคำตอบของรหัสนี้", 404)
+  const s = await getSettings()
+  if (!s.open) return bad(c, "ปิดรับแบบฟอร์มแล้ว กรุณาติดต่อผู้จัดงาน", 403)
+  if (!(await conflicts(sql, s)).has(row.id)) return bad(c, "หมายเลขของคุณไม่ซ้ำกับใคร ไม่ต้องเปลี่ยน", 409)
+  const e = cleanEntry({ ...row, jersey_no: b.jersey_no })
+  if ("error" in e) return bad(c, e.error, 400, { field: e.field })
+  const r = await saveEntry(e, row.id)
+  if ("status" in r) return c.json(r.body, r.status as any)
+  console.log(`[entry] #${row.id} renumbered ${row.jersey_no} -> ${r.row.jersey_no}`)
+  return c.json({ entry: publicRow(r.row) })
+})
+
 app.put("/api/entries/mine", async (c) => {
   if (limited(`entry:${ip(c)}`, 30, 600_000)) return bad(c, "ส่งบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่", 429)
   const b = await c.req.json().catch(() => ({}))
@@ -170,16 +215,17 @@ const fullName = (m: any) => [m.first_name, m.last_name].filter(Boolean).join(" 
 /** Members per colour + who has sent the form. Form entries not in the list are added at the end. */
 app.get("/api/members", async (c) => {
   const members = await sql`SELECT * FROM sd_members ORDER BY team, sort, id`
-  const entries = await sql`SELECT emp_code, full_name, team, nickname, jersey_no FROM sd_entries`
+  const entries = await sql`SELECT id, emp_code, full_name, team, nickname, jersey_no FROM sd_entries`
+  const dup = await conflicts(sql, await getSettings())
   const byCode = new Map(entries.map((e) => [e.emp_code, e]))
   const listed = new Set(members.map((m) => m.emp_code))
   const teams = TEAMS.map((t) => {
     const rows = members.filter((m) => m.team === t.id).map((m) => {
       const e = byCode.get(m.emp_code)
-      return { name: fullName(m), nickname: m.nickname, branch: m.branch, sent: !!e, jersey_no: e?.jersey_no ?? null }
+      return { name: fullName(m), nickname: m.nickname, branch: m.branch, sent: !!e, jersey_no: e?.jersey_no ?? null, dup: !!e && dup.has(e.id) }
     })
     const extra = entries.filter((e) => e.team === t.id && !listed.has(e.emp_code))
-      .map((e) => ({ name: e.full_name, nickname: e.nickname, branch: "", sent: true, jersey_no: e.jersey_no, extra: true }))
+      .map((e) => ({ name: e.full_name, nickname: e.nickname, branch: "", sent: true, jersey_no: e.jersey_no, extra: true, dup: dup.has(e.id) }))
     return { id: t.id, label: t.label, color: t.color, members: [...rows, ...extra] }
   })
   return c.json({ teams })
@@ -190,8 +236,10 @@ app.get("/api/members/lookup", async (c) => {
   if (limited(`lookup:${ip(c)}`, 120, 600_000)) return bad(c, "ค้นหาบ่อยเกินไป", 429)
   const code = normEmpCode(c.req.query("code"))
   const [m] = code ? await sql`SELECT * FROM sd_members WHERE emp_code = ${code}` : []
-  const [e] = code ? await sql`SELECT 1 FROM sd_entries WHERE emp_code = ${code}` : []
-  return c.json(m ? { found: true, emp_code: code, full_name: [m.first_name, m.last_name].filter(Boolean).join(" "), team: m.team, sent: !!e } : { found: false, emp_code: code, sent: !!e })
+  const [e] = code ? await sql`SELECT id, team, jersey_no, nickname FROM sd_entries WHERE emp_code = ${code}` : []
+  const h = e ? (await conflicts(sql, await getSettings())).get(e.id) : null
+  const conflict = h ? { ...h, message: conflictMsg(h), mine: { team: e!.team, jersey_no: e!.jersey_no, nickname: e!.nickname } } : null
+  return c.json(m ? { found: true, emp_code: code, full_name: [m.first_name, m.last_name].filter(Boolean).join(" "), team: m.team, sent: !!e, conflict } : { found: false, emp_code: code, sent: !!e, conflict })
 })
 
 async function replaceMembers(list: Member[]) {
@@ -256,7 +304,9 @@ app.use("/api/admin/*", async (c, next) => {
 
 app.get("/api/admin/entries", async (c) => {
   const rows = await sql`SELECT * FROM sd_entries ORDER BY created_at DESC, id DESC`
-  return c.json({ entries: rows.map(publicRow), settings: await getSettings() })
+  const settings = await getSettings()
+  const dup = await conflicts(sql, settings)
+  return c.json({ entries: rows.map((r) => ({ ...publicRow(r), dup: dup.get(r.id) ?? null })), settings })
 })
 
 app.patch("/api/admin/entries/:id", async (c) => {
@@ -331,13 +381,12 @@ app.patch("/api/admin/settings", async (c) => {
     await tx`SELECT pg_advisory_xact_lock(${LOCK})`
     const s = await getSettings(tx)
     const next: Settings = { open: typeof b.open === "boolean" ? b.open : s.open, scope: b.scope === "team" || b.scope === "all" ? b.scope : s.scope }
-    if (next.scope === "all" && s.scope === "team") {
-      // Can't switch to company-wide numbers while two colours share a number.
-      const dupes = await tx`SELECT jersey_no FROM sd_entries GROUP BY jersey_no HAVING count(*) > 1 ORDER BY jersey_no`
-      if (dupes.length) return bad(c, `เปลี่ยนไม่ได้ เพราะหมายเลข ${dupes.map((d) => d.jersey_no).join(", ")} ถูกใช้ซ้ำในหลายสีแล้ว`, 409)
-    }
+    // Switching to company-wide numbers is allowed even if colours already share a number: the earliest
+    // sender keeps it and the later ones are asked to pick a new number (see conflicts()).
     await tx`UPDATE sd_settings SET value = ${tx.json(next)} WHERE key = 'main'`
-    return c.json({ settings: next })
+    const n = (await conflicts(tx, next)).size
+    if (n) console.log(`[admin] scope ${next.scope}: ${n} entries must pick a new number`)
+    return c.json({ settings: next, conflicts: n })
   })
 })
 

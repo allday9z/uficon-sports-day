@@ -12,7 +12,7 @@ const saveMine = (v) => { try { v ? localStorage.setItem(MINE_KEY, JSON.stringif
 
 /** A number is free for me if nobody else has it (my own number while editing counts as free). */
 const isTaken = (n) =>
-  state.taken.has(n) && !(state.edit && n === state.edit.jersey_no && (state.cfg.scope !== "team" || state.form.team === state.edit.team))
+  state.taken.has(n) && !(state.edit && !state.edit.conflict && n === state.edit.jersey_no && (state.cfg.scope !== "team" || state.form.team === state.edit.team))
 const teamOf = (id) => state.cfg.teams.find((t) => t.id === id)
 const graphemes = (s) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s)].length
 
@@ -32,7 +32,7 @@ async function boot() {
   if (mine) {
     try {
       const r = await api("/api/entries/mine", { body: mine })
-      return renderDone(r.entry)
+      return renderDone(r.entry, false, r.conflict)
     } catch (e) {
       if (e.status === 404) saveMine(null)
     }
@@ -339,6 +339,7 @@ async function lookupMember() {
       $("#emp_code").value = r.emp_code
       state.form.emp_code = r.emp_code
     }
+    if (r.sent && r.conflict) return renderRenumber(r)
     if (r.sent) return showError("emp_code", "รหัสพนักงานนี้ส่งแบบฟอร์มไปแล้ว ส่งซ้ำไม่ได้ หากต้องการแก้ไข ให้เปิดจากเครื่องที่ใช้ส่ง หรือติดต่อผู้จัดงาน")
     if (!r.found) {
       hint.textContent = "ไม่พบรหัสนี้ในรายชื่อจับฉลาก ตรวจรหัสอีกครั้ง หรือกรอกชื่อและเลือกสีเอง"
@@ -360,21 +361,71 @@ async function lookupMember() {
   } catch { /* lookup is only a helper */ }
 }
 
-function startEdit(entry) {
-  state.edit = entry
+function startEdit(entry, conflict = null) {
+  state.edit = { ...entry, conflict }
   state.member = null
   state.form = { emp_code: entry.emp_code, full_name: entry.full_name, team: entry.team, nickname: entry.nickname, jersey_no: entry.jersey_no, size: entry.size }
   renderForm()
-  refreshTaken()
-  window.scrollTo({ top: 0, behavior: "smooth" })
+  refreshTaken().then(() => { if (conflict) { showError("jersey_no", conflict.message); focusField("jersey_no") } })
+  if (!conflict) window.scrollTo({ top: 0, behavior: "smooth" })
 }
 
-function renderDone(entry, edited = false) {
+/** The number clashes with someone who sent it earlier: pick a new number (any device, code only). */
+function renderRenumber(r) {
+  const c = r.conflict
+  const t = teamOf(c.mine.team)
+  state.renumber = { emp_code: r.emp_code, team: c.mine.team, old: c.mine.jersey_no }
+  state.form = { ...EMPTY, emp_code: r.emp_code, team: c.mine.team }
+  window.scrollTo({ top: 0, behavior: "smooth" })
+  $("#app").innerHTML = `
+    <div class="card done renumber" style="--c:${t.color}">
+      <div class="done-badge warn">!</div>
+      <h2>กรุณาเลือกหมายเลขเสื้อใหม่</h2>
+      <p class="alert-bad">${esc(c.message)}</p>
+      <p class="muted">รหัส ${esc(r.emp_code)} · ${esc(c.mine.nickname)} · ${esc(t.label)} · หมายเลขเดิม ${esc(c.mine.jersey_no)}</p>
+      <div class="q" data-field="jersey_no">
+        <div class="no-row center-row">
+          <input id="jersey_no" name="jersey_no" class="input no-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="2" placeholder="00" />
+          <div class="no-side">
+            <p class="no-status" id="noStatus">ใส่หมายเลขใหม่ 2 หลัก</p>
+            <button type="button" class="btn ghost sm" id="pickNo">ดูหมายเลขที่ยังว่าง</button>
+          </div>
+        </div>
+        <p class="err" hidden></p>
+      </div>
+      <button class="btn primary block" id="saveNo">บันทึกหมายเลขใหม่</button>
+    </div>`
+  const inp = $("#jersey_no")
+  inp.oninput = () => {
+    inp.value = inp.value.replace(/\D/g, "").slice(0, 2)
+    state.form.jersey_no = inp.value
+    clearError("jersey_no")
+    checkNumber(false)
+  }
+  $("#pickNo").onclick = openPicker
+  $("#saveNo").onclick = async () => {
+    const no = state.form.jersey_no
+    if (!/^[0-9]{2}$/.test(no)) return showError("jersey_no", "กรุณาใส่หมายเลข 2 หลัก (00–99) เช่น 07")
+    if (isTaken(no)) return showError("jersey_no", `หมายเลข ${no} มีคนเลือกไปแล้ว กรุณาเลือกหมายเลขใหม่`)
+    try {
+      const res = await api("/api/entries/renumber", { method: "PUT", body: { emp_code: r.emp_code, jersey_no: no } })
+      state.renumber = null
+      renderDone(res.entry, true)
+    } catch (err) {
+      if (err.data?.taken) { state.taken = new Set(err.data.taken); state.takenFor = state.form.team }
+      showError("jersey_no", err.message)
+    }
+  }
+  refreshTaken()
+}
+
+function renderDone(entry, edited = false, conflict = null) {
   const t = teamOf(entry.team)
   $("#toast").hidden = true
   window.scrollTo({ top: 0, behavior: "smooth" })
   $("#app").innerHTML = `
     <div class="card done" style="--c:${t.color}">
+      ${conflict ? `<p class="alert-bad">⚠️ ${esc(conflict.message)}</p>` : ""}
       <div class="done-badge">✓</div>
       <h2>${edited ? "บันทึกการแก้ไขแล้ว" : "ส่งแบบฟอร์มเรียบร้อย"}</h2>
       <p class="muted">ขอบคุณที่ส่งข้อมูล แล้วเจอกันวัน Sports Day!</p>
@@ -389,7 +440,8 @@ function renderDone(entry, edited = false) {
       </dl>
       ${state.cfg.open ? '<button class="btn block edit-btn" id="editMine">✎ แก้ไขคำตอบ</button><p class="hint center">ส่งซ้ำไม่ได้ แต่แก้ไขคำตอบนี้ได้จากเครื่องนี้ จนกว่าจะปิดรับแบบฟอร์ม</p>' : '<p class="hint center">ปิดรับแบบฟอร์มแล้ว ต้องการแก้ไขข้อมูล กรุณาติดต่อผู้จัดงาน</p>'}
     </div>`
-  $("#editMine")?.addEventListener("click", () => startEdit(entry))
+  $("#editMine")?.addEventListener("click", () => startEdit(entry, conflict))
+  if (conflict && $("#editMine")) $("#editMine").textContent = "เลือกหมายเลขใหม่"
 }
 
 boot()

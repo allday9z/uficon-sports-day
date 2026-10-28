@@ -108,14 +108,29 @@ describe("admin", () => {
     expect((await (await req("/api/numbers")).json()).taken).toEqual(["07"])
   })
 
-  it("lets numbers repeat across colours when set per colour, and blocks switching back while they do", async () => {
+  it("lets numbers repeat across colours when set per colour; switching back asks the later sender to renumber", async () => {
     expect((await req("/api/admin/settings", { method: "PATCH", body: { scope: "team" } })).status).toBe(200)
     expect((await req("/api/entries", { body: person({ emp_code: "20", team: "green" }) })).status).toBe(201)
     expect((await req("/api/entries", { body: person({ emp_code: "21", team: "green" }) })).status).toBe(409)
     expect((await (await req("/api/numbers?team=pink")).json()).taken).toEqual([])
     const back = await req("/api/admin/settings", { method: "PATCH", body: { scope: "all" } })
-    expect(back.status).toBe(409)
-    expect((await back.json()).error).toContain("07")
+    expect(back.status).toBe(200)
+    expect(((await back.json()) as any).conflicts).toBe(1)
+    const list = ((await (await req("/api/admin/entries")).json()) as any).entries
+    const first = list.find((e: any) => e.emp_code === "0001"), later = list.find((e: any) => e.emp_code === "0020")
+    expect(first.dup).toBeNull()
+    expect(later.dup).toMatchObject({ jersey_no: "07", team: "blue" })
+    // The earlier sender keeps the number when editing; the later one can't.
+    expect((await req(`/api/admin/entries/${first.id}`, { method: "PATCH", body: person({ emp_code: "0001", size: "L" }) })).status).toBe(200)
+    expect((await req(`/api/admin/entries/${later.id}`, { method: "PATCH", body: person({ emp_code: "0020", team: "green" }) })).status).toBe(409)
+    // The later sender is told, and picks a new number with the employee code.
+    const look: any = await (await req("/api/members/lookup?code=20")).json()
+    expect(look.conflict.message).toContain("07")
+    expect((await req("/api/entries/renumber", { method: "PUT", body: { emp_code: "1", jersey_no: "71" } })).status).toBe(409)
+    expect((await req("/api/entries/renumber", { method: "PUT", body: { emp_code: "20", jersey_no: "07" } })).status).toBe(409)
+    const ok = await req("/api/entries/renumber", { method: "PUT", body: { emp_code: "20", jersey_no: "71" } })
+    expect(((await ok.json()) as any).entry).toMatchObject({ emp_code: "0020", team: "green", jersey_no: "71" })
+    expect((((await (await req("/api/admin/entries")).json()) as any).entries as any[]).some((e) => e.dup)).toBe(false)
   })
 
   it("closes the form", async () => {

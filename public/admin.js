@@ -105,6 +105,7 @@ function renderDashboard() {
           ${teams.map((t) => `<button class="chip${A.team === t.id ? " on" : ""}" data-team="${t.id}" style="--c:${t.color}"><span class="dot"></span>${esc(t.label)}</button>`).join("")}
         </div>
       </div>
+      ${E.some((e) => e.dup) ? `<p class="alert-bad dup-banner">⚠️ มี ${E.filter((e) => e.dup).length} คนที่หมายเลขซ้ำกับคนที่ส่งก่อน (${E.filter((e) => e.dup).map((e) => `${esc(e.nickname)} ${esc(e.jersey_no)}`).join(", ")}) — ระบบให้คนเหล่านี้เลือกหมายเลขใหม่เมื่อเปิดแบบฟอร์มหรือกรอกรหัส หรือแก้ให้ได้ที่ปุ่ม "แก้ไข"</p>` : ""}
       <div id="list"></div>
     </section>
 
@@ -268,7 +269,7 @@ function renderList() {
         <tbody>${rows.map((e) => {
           const t = teamOf(e.team)
           return `<tr>
-            <td data-l="หมายเลข"><span class="jno" style="--c:${t.color}">${esc(e.jersey_no)}</span></td>
+            <td data-l="หมายเลข"><span class="jno${e.dup ? " dup" : ""}" style="--c:${t.color}">${esc(e.jersey_no)}</span>${e.dup ? `<span class="dup-tag" title="ซ้ำกับ ${esc(e.dup.nickname)} (${esc(teamOf(e.dup.team).label)}) ที่ส่งก่อน">เลขซ้ำ</span>` : ""}</td>
             <td data-l="ชื่อเล่น"><b>${esc(e.nickname)}</b></td>
             <td data-l="ชื่อ-นามสกุล">${esc(e.full_name)}</td>
             <td data-l="รหัส" class="mono">${esc(e.emp_code)}</td>
