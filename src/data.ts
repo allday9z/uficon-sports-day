@@ -31,8 +31,9 @@ const clean = (v: unknown, max: number) => String(v ?? "").normalize("NFC").repl
 const chars = (s: string) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s)].length
 
 export const NICK_MAX = 8
-export const NICK_RE = /^[A-Za-z][A-Za-z .'\-]*$/
-const NICK_ERR = "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษเท่านั้น (A–Z เว้นวรรค จุด หรือขีดได้)"
+// English capitals only (Smile, 28 Oct 2026) — lower case is turned into capitals, Thai is refused.
+export const NICK_RE = /^[A-Z][A-Z .'\-]*$/
+const NICK_ERR = "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษตัวพิมพ์ใหญ่เท่านั้น (A–Z เว้นวรรค จุด หรือขีดได้)"
 
 /** Employee codes are numbers shown with 4 digits (0000). "4" and "0004" are the same person. */
 export function normEmpCode(v: unknown): string | null {
@@ -54,7 +55,7 @@ export function cleanEntry(b: any): Entry | Problem {
   const team = String(b?.team ?? "")
   if (!TEAMS.some((t) => t.id === team)) return { field: "team", error: "กรุณาเลือกสีที่จับฉลากได้" }
 
-  const nickname = clean(b?.nickname, 40)
+  const nickname = clean(b?.nickname, 40).toUpperCase()
   if (!nickname) return { field: "nickname", error: "กรุณากรอกชื่อเล่นที่จะสกรีนบนเสื้อ" }
   if (chars(nickname) > NICK_MAX) return { field: "nickname", error: `ชื่อเล่นบนเสื้อยาวได้ไม่เกิน ${NICK_MAX} ตัวอักษร` }
   // English only on the shirt (Smile, 28 Oct 2026).

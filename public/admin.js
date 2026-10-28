@@ -305,7 +305,7 @@ function editEntry(e) {
       <label class="lbl">รหัสพนักงาน<input class="input" name="emp_code" value="${esc(e.emp_code)}" inputmode="numeric" maxlength="6" /></label>
       <label class="lbl">ชื่อ-นามสกุล<input class="input" name="full_name" value="${esc(e.full_name)}" maxlength="100" /></label>
       <label class="lbl">สี<select class="input" name="team">${teams.map((t) => `<option value="${t.id}"${t.id === e.team ? " selected" : ""}>${esc(t.label)}</option>`).join("")}</select></label>
-      <label class="lbl">ชื่อเล่นบนเสื้อ (อังกฤษ ไม่เกิน ${nickMax})<input class="input" name="nickname" value="${esc(e.nickname)}" /></label>
+      <label class="lbl">ชื่อเล่นบนเสื้อ (อังกฤษตัวใหญ่ ไม่เกิน ${nickMax})<input class="input" name="nickname" value="${esc(e.nickname)}" /></label>
       <label class="lbl">หมายเลข 2 หลัก<input class="input" name="jersey_no" value="${esc(e.jersey_no)}" inputmode="numeric" maxlength="2" /></label>
       <label class="lbl">ไซซ์<select class="input" name="size">${sizes.map((z) => `<option${z.id === e.size ? " selected" : ""}>${esc(z.id)}</option>`).join("")}</select></label>
       <p class="err span2" id="editErr" hidden></p>
