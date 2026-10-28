@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Sports Day Admin</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="admin">
+  <header class="bar">
+    <a class="bar-brand" href="/admin"><span aria-hidden="true">👟</span> Sports Day 2026 <small>ผู้จัดงาน</small></a>
+    <div class="bar-actions" id="barActions"></div>
+  </header>
+  <main id="app" class="wrap wide">
+    <div class="loading">กำลังโหลด…</div>
+  </main>
+  <div class="modal-back" id="modal" hidden><div class="modal" id="modalBox" role="dialog" aria-modal="true"></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/common.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

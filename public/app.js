@@ -1,0 +1,312 @@
+/* Sports Day form — employees fill it in once. */
+"use strict"
+
+const state = { cfg: null, taken: new Set(), takenFor: null, form: { emp_code: "", full_name: "", team: "", nickname: "", jersey_no: "", size: "" }, sending: false }
+const teamOf = (id) => state.cfg.teams.find((t) => t.id === id)
+const graphemes = (s) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s)].length
+
+async function boot() {
+  try {
+    state.cfg = await api("/api/config")
+  } catch (e) {
+    $("#app").innerHTML = `<div class="card center"><h2>เปิดแบบฟอร์มไม่ได้</h2><p class="muted">${esc(e.message)}</p><button class="btn" id="retry">ลองใหม่</button></div>`
+    $("#retry").onclick = () => location.reload()
+    return
+  }
+  if (!state.cfg.open) {
+    $("#app").innerHTML = `<div class="card center"><div class="big-ico">🏁</div><h2>ปิดรับแบบฟอร์มแล้ว</h2><p class="muted">หากมีข้อสงสัย กรุณาติดต่อผู้จัดงาน</p></div>`
+    return
+  }
+  renderForm()
+  refreshTaken()
+}
+
+function renderForm() {
+  const { teams, sizes, nickMax } = state.cfg
+  $("#app").innerHTML = `
+  <form id="form" class="layout" novalidate>
+    <div class="card form-card">
+      <div class="q" data-field="emp_code">
+        <label class="q-title" for="emp_code"><span class="num">1</span>รหัสพนักงาน</label>
+        <input id="emp_code" name="emp_code" class="input" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="เช่น UF0123" required />
+        <p class="err" hidden></p>
+      </div>
+
+      <div class="q" data-field="full_name">
+        <label class="q-title" for="full_name"><span class="num">2</span>ชื่อจริง-นามสกุล</label>
+        <input id="full_name" name="full_name" class="input" autocomplete="name" maxlength="100" placeholder="เช่น สมใจ ใจดี" required />
+        <p class="err" hidden></p>
+      </div>
+
+      <fieldset class="q" data-field="team">
+        <legend class="q-title"><span class="num">3</span>สีที่จับฉลากได้</legend>
+        <div class="teams">
+          ${teams.map((t) => `
+            <label class="team" style="--c:${t.color}">
+              <input type="radio" name="team" value="${t.id}" />
+              <span class="team-swatch" aria-hidden="true"></span>
+              <span class="team-name">${esc(t.label)}</span>
+            </label>`).join("")}
+        </div>
+        <p class="err" hidden></p>
+      </fieldset>
+
+      <div class="q" data-field="nickname">
+        <label class="q-title" for="nickname"><span class="num">4</span>ชื่อเล่นที่ต้องการสกรีนบนเสื้อ</label>
+        <div class="input-count">
+          <input id="nickname" name="nickname" class="input" autocomplete="nickname" maxlength="${nickMax * 3}" placeholder="เช่น SMILE หรือ สไมล์" required />
+          <span class="count" id="nickCount">0/${nickMax}</span>
+        </div>
+        <p class="hint">สกรีนตามที่พิมพ์ทุกตัวอักษร (ตัวพิมพ์ใหญ่/เล็ก ภาษาไทย/อังกฤษ) ไม่เกิน ${nickMax} ตัวอักษร</p>
+        <p class="err" hidden></p>
+      </div>
+
+      <div class="q" data-field="jersey_no">
+        <label class="q-title" for="jersey_no"><span class="num">5</span>หมายเลข 2 หลักด้านหลังเสื้อ</label>
+        <div class="no-row">
+          <input id="jersey_no" name="jersey_no" class="input no-input" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="2" placeholder="00" required />
+          <div class="no-side">
+            <p class="no-status" id="noStatus">${state.cfg.scope === "team" ? "หมายเลขห้ามซ้ำกับคนอื่นในสีเดียวกัน" : "หมายเลขห้ามซ้ำกับคนอื่น"}</p>
+            <button type="button" class="btn ghost sm" id="pickNo">ดูหมายเลขที่ยังว่าง</button>
+          </div>
+        </div>
+        <p class="hint">ใส่ 2 หลักเสมอ เช่น 07 ไม่ใช่ 7 (00–99)</p>
+        <p class="err" hidden></p>
+      </div>
+
+      <fieldset class="q" data-field="size">
+        <legend class="q-title"><span class="num">6</span>ไซส์เสื้อ <button type="button" class="link" id="chartBtn">ดูตารางไซส์</button></legend>
+        <p class="hint top">เสื้อโปโล คอปก/จีน กระดุม · หน่วยนิ้ว อาจมีบวก/ลบ 1 นิ้ว</p>
+        <div class="sizes">
+          ${sizes.map((s) => `
+            <label class="size">
+              <input type="radio" name="size" value="${esc(s.id)}" />
+              <span class="size-id">${esc(s.id)}</span>
+              <span class="size-dim">อก ${s.chest}″ · ยาว ${s.length}″</span>
+            </label>`).join("")}
+        </div>
+        <p class="err" hidden></p>
+      </fieldset>
+
+      <div class="submit-row">
+        <button type="submit" class="btn primary block" id="submitBtn">ส่งแบบฟอร์ม</button>
+        <p class="hint center">ส่งได้คนละ 1 ครั้ง ตรวจข้อมูลให้ถูกต้องก่อนส่ง</p>
+      </div>
+    </div>
+
+    <aside class="preview-col">
+      <div class="card preview">
+        <p class="preview-label">ตัวอย่างเสื้อด้านหลัง</p>
+        <div id="shirt"></div>
+        <p class="preview-sub" id="previewSub">เลือกสี ใส่ชื่อเล่นและหมายเลข เพื่อดูตัวอย่าง</p>
+      </div>
+    </aside>
+  </form>`
+
+  const f = $("#form")
+  f.addEventListener("input", onInput)
+  f.addEventListener("change", onInput)
+  f.addEventListener("submit", onSubmit)
+  $("#jersey_no").addEventListener("blur", () => checkNumber(true))
+  $("#pickNo").onclick = openPicker
+  $("#chartBtn").onclick = () => openModal(sizeChartHTML(state.cfg.sizes))
+  updatePreview()
+}
+
+function onInput(e) {
+  const el = e.target
+  if (!el.name) return
+  if (el.name === "jersey_no") el.value = el.value.replace(/\D/g, "").slice(0, 2)
+  if (el.name === "emp_code") {
+    const pos = el.selectionStart
+    el.value = el.value.toUpperCase()
+    try { el.setSelectionRange(pos, pos) } catch { /* radio etc. */ }
+  }
+  state.form[el.name] = el.type === "radio" ? $(`input[name="${el.name}"]:checked`)?.value ?? "" : el.value
+  clearError(el.name)
+  if (el.name === "nickname") {
+    const n = graphemes(el.value.trim())
+    const c = $("#nickCount")
+    c.textContent = `${n}/${state.cfg.nickMax}`
+    c.classList.toggle("over", n > state.cfg.nickMax)
+  }
+  if (el.name === "team" && state.cfg.scope === "team") refreshTaken()
+  if (el.name === "jersey_no" || el.name === "team") checkNumber(false)
+  updatePreview()
+}
+
+function updatePreview() {
+  const { team, nickname, jersey_no, size } = state.form
+  const t = team ? teamOf(team) : null
+  $("#shirt").innerHTML = shirtSVG({ color: t?.color, nickname: nickname.trim(), number: jersey_no.length === 2 ? jersey_no : "", size })
+  const bits = [t?.label, size && `ไซส์ ${size}`].filter(Boolean)
+  $("#previewSub").textContent = bits.length ? bits.join(" · ") : "เลือกสี ใส่ชื่อเล่นและหมายเลข เพื่อดูตัวอย่าง"
+}
+
+// ── jersey numbers ──────────────────────────────────────────────────────────
+async function refreshTaken() {
+  const team = state.cfg.scope === "team" ? state.form.team : ""
+  try {
+    const r = await api("/api/numbers" + (team ? `?team=${encodeURIComponent(team)}` : ""))
+    state.cfg.scope = r.scope
+    state.taken = new Set(r.taken)
+    state.takenFor = team
+  } catch { /* the server checks again on submit */ }
+  checkNumber(false)
+}
+
+function checkNumber(onBlur) {
+  const no = state.form.jersey_no
+  const s = $("#noStatus")
+  if (!s) return
+  s.className = "no-status"
+  if (!no) {
+    s.textContent = state.cfg.scope === "team" ? "หมายเลขห้ามซ้ำกับคนอื่นในสีเดียวกัน" : "หมายเลขห้ามซ้ำกับคนอื่น"
+    return
+  }
+  if (no.length < 2) {
+    s.textContent = "ใส่ให้ครบ 2 หลัก เช่น 0" + no
+    if (onBlur) s.classList.add("warn")
+    return
+  }
+  if (state.cfg.scope === "team" && !state.form.team) {
+    s.textContent = "เลือกสีก่อน แล้วระบบจะตรวจว่าหมายเลขนี้ว่างไหม"
+    return
+  }
+  if (state.taken.has(no)) {
+    s.textContent = `✕ หมายเลข ${no} มีคนเลือกแล้ว กรุณาเลือกหมายเลขใหม่`
+    s.classList.add("bad")
+  } else {
+    s.textContent = `✓ หมายเลข ${no} ยังว่าง`
+    s.classList.add("ok")
+  }
+}
+
+async function openPicker() {
+  if (state.cfg.scope === "team" && !state.form.team) {
+    showError("team", "เลือกสีก่อน เพื่อดูหมายเลขที่ว่างในสีนั้น")
+    return
+  }
+  await refreshTaken()
+  const t = state.cfg.scope === "team" ? teamOf(state.form.team) : null
+  const cells = Array.from({ length: 100 }, (_, i) => String(i).padStart(2, "0"))
+  const free = cells.filter((n) => !state.taken.has(n)).length
+  const close = openModal(`
+    <div class="modal-head"><h3>เลือกหมายเลขเสื้อ</h3><button class="icon-btn" data-close aria-label="ปิด">✕</button></div>
+    <p class="muted">${t ? `เฉพาะ${esc(t.label)} · ` : ""}ว่าง ${free} หมายเลข · หมายเลขสีเทาขีดฆ่า = มีคนเลือกแล้ว</p>
+    <div class="grid100">${cells.map((n) => `<button type="button" class="cell${state.taken.has(n) ? " taken" : ""}${n === state.form.jersey_no ? " mine" : ""}" data-n="${n}" ${state.taken.has(n) ? 'disabled aria-label="' + n + ' มีคนเลือกแล้ว"' : ""}>${n}</button>`).join("")}</div>`, { wide: true })
+  $$(".grid100 .cell:not(.taken)").forEach((b) => (b.onclick = () => {
+    const el = $("#jersey_no")
+    el.value = b.dataset.n
+    el.dispatchEvent(new Event("input", { bubbles: true }))
+    close()
+  }))
+}
+
+// ── validation & submit ─────────────────────────────────────────────────────
+function showError(field, msg) {
+  const q = $(`.q[data-field="${field}"]`)
+  if (!q) return toast(msg, "bad")
+  q.classList.add("has-err")
+  const p = $(".err", q)
+  p.textContent = msg
+  p.hidden = false
+  q.classList.remove("shake")
+  void q.offsetWidth
+  q.classList.add("shake")
+}
+function clearError(field) {
+  const q = $(`.q[data-field="${field}"]`)
+  if (!q) return
+  q.classList.remove("has-err")
+  $(".err", q).hidden = true
+}
+
+function validate() {
+  const f = state.form
+  const errs = []
+  const code = f.emp_code.trim()
+  if (!code) errs.push(["emp_code", "กรุณากรอกรหัสพนักงาน"])
+  else if (!/^[A-Z0-9][A-Z0-9\-_/.]{0,19}$/.test(code)) errs.push(["emp_code", "รหัสพนักงานใช้ได้เฉพาะตัวอักษรอังกฤษและตัวเลข"])
+  if (f.full_name.trim().length < 3) errs.push(["full_name", "กรุณากรอกชื่อจริง-นามสกุล"])
+  if (!f.team) errs.push(["team", "กรุณาเลือกสีที่จับฉลากได้"])
+  const n = graphemes(f.nickname.trim())
+  if (!n) errs.push(["nickname", "กรุณากรอกชื่อเล่นที่จะสกรีนบนเสื้อ"])
+  else if (n > state.cfg.nickMax) errs.push(["nickname", `ชื่อเล่นบนเสื้อยาวได้ไม่เกิน ${state.cfg.nickMax} ตัวอักษร`])
+  if (!/^[0-9]{2}$/.test(f.jersey_no)) errs.push(["jersey_no", "กรุณาใส่หมายเลข 2 หลัก (00–99) เช่น 07"])
+  else if (state.taken.has(f.jersey_no) && (state.cfg.scope !== "team" || state.takenFor === f.team)) errs.push(["jersey_no", `หมายเลข ${f.jersey_no} มีคนเลือกไปแล้ว กรุณาเลือกหมายเลขใหม่`])
+  if (!f.size) errs.push(["size", "กรุณาเลือกไซส์เสื้อ"])
+  return errs
+}
+
+function focusField(field) {
+  const q = $(`.q[data-field="${field}"]`)
+  q?.scrollIntoView({ behavior: "smooth", block: "center" })
+  const input = q && $("input", q)
+  if (input && input.type !== "radio") setTimeout(() => input.focus({ preventScroll: true }), 300)
+}
+
+async function onSubmit(e) {
+  e.preventDefault()
+  if (state.sending) return
+  const errs = validate()
+  errs.forEach(([f, m]) => showError(f, m))
+  if (errs.length) {
+    focusField(errs[0][0])
+    toast("กรุณาตรวจข้อมูลที่มีเครื่องหมายสีแดง", "bad")
+    return
+  }
+  state.sending = true
+  const btn = $("#submitBtn")
+  btn.disabled = true
+  btn.textContent = "กำลังส่ง…"
+  try {
+    const r = await api("/api/entries", { body: state.form })
+    renderDone(r.entry)
+  } catch (err) {
+    const d = err.data || {}
+    if (d.field === "jersey_no") {
+      if (d.taken) { state.taken = new Set(d.taken); state.takenFor = state.form.team }
+      checkNumber(true)
+      showError("jersey_no", err.message)
+      focusField("jersey_no")
+      toast(err.message, "bad")
+    } else if (d.field) {
+      showError(d.field, err.message)
+      focusField(d.field)
+      toast(err.message, "bad")
+    } else {
+      toast(err.message, "bad")
+    }
+  } finally {
+    state.sending = false
+    if (btn.isConnected) {
+      btn.disabled = false
+      btn.textContent = "ส่งแบบฟอร์ม"
+    }
+  }
+}
+
+function renderDone(entry) {
+  const t = teamOf(entry.team)
+  $("#toast").hidden = true
+  window.scrollTo({ top: 0, behavior: "smooth" })
+  $("#app").innerHTML = `
+    <div class="card done" style="--c:${t.color}">
+      <div class="done-badge">✓</div>
+      <h2>ส่งแบบฟอร์มเรียบร้อย</h2>
+      <p class="muted">ขอบคุณที่ส่งข้อมูล แล้วเจอกันวัน Sports Day!</p>
+      <div class="done-shirt">${shirtSVG({ color: t.color, nickname: entry.nickname, number: entry.jersey_no, size: entry.size })}</div>
+      <dl class="summary">
+        <dt>รหัสพนักงาน</dt><dd>${esc(entry.emp_code)}</dd>
+        <dt>ชื่อ-นามสกุล</dt><dd>${esc(entry.full_name)}</dd>
+        <dt>สี</dt><dd><span class="pill" style="--c:${t.color}">${esc(t.label)}</span></dd>
+        <dt>ชื่อเล่นบนเสื้อ</dt><dd>${esc(entry.nickname)}</dd>
+        <dt>หมายเลข</dt><dd class="mono">${esc(entry.jersey_no)}</dd>
+        <dt>ไซส์</dt><dd>${esc(entry.size)}</dd>
+      </dl>
+      <p class="hint center">ต้องการแก้ไขข้อมูล กรุณาติดต่อผู้จัดงาน</p>
+    </div>`
+}
+
+boot()
