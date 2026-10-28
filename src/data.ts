@@ -30,7 +30,7 @@ export type Problem = { field: keyof Entry; error: string }
 const clean = (v: unknown, max: number) => String(v ?? "").normalize("NFC").replace(/\s+/g, " ").trim().slice(0, max + 1)
 const chars = (s: string) => [...new Intl.Segmenter("th", { granularity: "grapheme" }).segment(s)].length
 
-export const NICK_MAX = 12
+export const NICK_MAX = 8
 export const NICK_RE = /^[A-Za-z][A-Za-z .'\-]*$/
 const NICK_ERR = "ชื่อเล่นบนเสื้อต้องเป็นภาษาอังกฤษเท่านั้น (A–Z เว้นวรรค จุด หรือขีดได้)"
 
