@@ -394,12 +394,11 @@ app.patch("/api/admin/settings", async (c) => {
   return await sql.begin(async (tx) => {
     await tx`SELECT pg_advisory_xact_lock(${LOCK})`
     const s = await getSettings(tx)
-    const next: Settings = { open: typeof b.open === "boolean" ? b.open : s.open, scope: b.scope === "team" || b.scope === "all" ? b.scope : s.scope }
-    // Switching to company-wide numbers is allowed even if colours already share a number: the earliest
-    // sender keeps it and the later ones are asked to pick a new number (see conflicts()).
+    // Only open/closed can change. The per-colour option is gone (Smile, 29 Oct 2026): numbers never repeat.
+    const next: Settings = { open: typeof b.open === "boolean" ? b.open : s.open, scope: "all" }
     await tx`UPDATE sd_settings SET value = ${tx.json(next)} WHERE key = 'main'`
     const n = (await conflicts(tx, next)).size
-    if (n) console.log(`[admin] scope ${next.scope}: ${n} entries must pick a new number`)
+    if (n) console.log(`[admin] settings saved: ${n} entries still must pick a new number`)
     return c.json({ settings: next, conflicts: n })
   })
 })

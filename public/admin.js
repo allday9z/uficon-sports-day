@@ -64,11 +64,8 @@ function renderDashboard() {
         <button class="switch${s.open ? " on" : ""}" id="openSw" role="switch" aria-checked="${s.open}" aria-label="เปิดรับแบบฟอร์ม"><i></i></button>
       </div>
       <div class="set">
-        <div><b>หมายเลขเสื้อห้ามซ้ำ</b><p class="muted sm">${s.scope === "team" ? "ภายในสีเดียวกัน (คนละสีใช้เลขเดียวกันได้)" : "ทั้งบริษัท (ทุกสีรวมกัน)"}</p></div>
-        <div class="seg" role="radiogroup" aria-label="ขอบเขตหมายเลขห้ามซ้ำ">
-          <button class="${s.scope === "all" ? "on" : ""}" data-scope="all" role="radio" aria-checked="${s.scope === "all"}">ทั้งบริษัท</button>
-          <button class="${s.scope === "team" ? "on" : ""}" data-scope="team" role="radio" aria-checked="${s.scope === "team"}">แยกตามสี</button>
-        </div>
+        <div><b>หมายเลขเสื้อห้ามซ้ำทั้งบริษัท</b><p class="muted sm">ทุกสีรวมกัน · ใครส่งก่อนได้เลขนั้น คนที่ส่งทีหลังใส่เลขซ้ำไม่ได้</p></div>
+        <span class="pill lock" title="ล็อกไว้ เปลี่ยนไม่ได้">🔒 ล็อกไว้</span>
       </div>
       <div class="set">
         <div><b>ดาวน์โหลด Excel</b><p class="muted sm">รายชื่อทั้งหมด · สรุปไซซ์ต่อสี · แยกชีตตามสี</p></div>
@@ -144,7 +141,6 @@ function renderDashboard() {
     </section>`
 
   $("#openSw").onclick = () => saveSettings({ open: !s.open })
-  $$("[data-scope]").forEach((b) => (b.onclick = () => { if (b.dataset.scope !== s.scope) saveSettings({ scope: b.dataset.scope }) }))
   $("#reload").onclick = () => loadDashboard()
   $("#q").oninput = (e) => { A.q = e.target.value; renderList() }
   $$(".chip").forEach((c) => (c.onclick = () => {

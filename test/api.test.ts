@@ -109,17 +109,17 @@ describe("admin", () => {
     expect((await (await req("/api/numbers")).json()).taken).toEqual(["07"])
   })
 
-  it("lets numbers repeat across colours when set per colour; switching back asks the later sender to renumber", async () => {
-    expect((await req("/api/admin/settings", { method: "PATCH", body: { scope: "team" } })).status).toBe(200)
-    expect((await req("/api/entries", { body: person({ emp_code: "20", team: "green" }) })).status).toBe(201)
-    expect((await req("/api/entries", { body: person({ emp_code: "21", team: "green" }) })).status).toBe(409)
-    expect((await (await req("/api/numbers?team=pink")).json()).taken).toEqual([])
-    // Per colour, the เลขที่เหลือ board keeps each colour's own 07.
-    expect(((await (await req("/api/numbers/board")).json()) as any).taken).toEqual([{ no: "07", team: "blue" }, { no: "07", team: "green" }])
-    const back = await req("/api/admin/settings", { method: "PATCH", body: { scope: "all" } })
-    expect(back.status).toBe(200)
-    expect(((await back.json()) as any).conflicts).toBe(1)
-    // Company-wide again: the clash shows only the earlier sender on the board.
+  it("never lets numbers repeat across colours; an old clash asks the later sender to renumber", async () => {
+    // The per-colour option is gone (Smile, 29 Oct 2026): asking for it changes nothing.
+    const set = await req("/api/admin/settings", { method: "PATCH", body: { scope: "team" } })
+    expect(((await set.json()) as any).settings.scope).toBe("all")
+    expect((await req("/api/entries", { body: person({ emp_code: "20", team: "green" }) })).status).toBe(409)
+    expect(((await (await req("/api/config")).json()) as any).scope).toBe("all")
+    // A clash left over from when per colour was allowed (written straight into the table).
+    await sql`UPDATE sd_settings SET value = ${sql.json({ open: true, scope: "team" })} WHERE key = 'main'`
+    await sql`INSERT INTO sd_entries (emp_code, full_name, team, nickname, jersey_no, size, created_at, updated_at)
+      VALUES ('0020', 'สมชาย ทีหลัง', 'green', 'LATER', '07', 'M', now(), now())`
+    expect(((await (await req("/api/config")).json()) as any).scope).toBe("all")
     expect(((await (await req("/api/numbers/board")).json()) as any).taken).toEqual([{ no: "07", team: "blue" }])
     const list = ((await (await req("/api/admin/entries")).json()) as any).entries
     const first = list.find((e: any) => e.emp_code === "0001"), later = list.find((e: any) => e.emp_code === "0020")

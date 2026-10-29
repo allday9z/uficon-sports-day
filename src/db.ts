@@ -74,5 +74,6 @@ export async function initDB(): Promise<void> {
 
 export async function getSettings(tx: Q = sql): Promise<Settings> {
   const [r] = await tx`SELECT value FROM sd_settings WHERE key = 'main'`
-  return { ...DEFAULT_SETTINGS, ...(r?.value ?? {}) }
+  // Numbers are unique across every colour, always (Smile, 29 Oct 2026): a stored "team" scope is ignored.
+  return { ...DEFAULT_SETTINGS, ...(r?.value ?? {}), scope: "all" }
 }
