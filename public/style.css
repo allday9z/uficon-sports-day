@@ -327,3 +327,28 @@ textarea.paste { min-height: 180px; font: .85rem/1.4 ui-monospace, Menlo, monosp
 .jno.dup { background: #fff !important; color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); text-decoration: line-through; }
 .dup-tag { display: inline-block; font-size: .7rem; font-weight: 700; padding: 0 .4rem; border-radius: 6px; background: var(--bad-bg); color: var(--bad); vertical-align: 1px; margin-left: .25rem; white-space: nowrap; }
 .dup-banner { margin: .6rem 0 0; }
+
+/* เลขที่เหลือ (Smile 29 Oct 2026) */
+.wrap.numbers-wrap { max-width: 680px; }
+.no-board { padding: 1.25rem; }
+.no-tabs { display: flex; flex-wrap: wrap; margin-bottom: 1rem; }
+.no-tabs button { display: inline-flex; align-items: center; }
+.no-sum { display: flex; gap: 1rem; align-items: center; }
+.no-sum > div:first-child { white-space: nowrap; }
+.no-big { font: 800 3.2rem/1 var(--head); font-variant-numeric: tabular-nums; }
+.no-of { font: 600 1.1rem var(--head); color: var(--ink-3); margin-left: .25rem; }
+.no-sum h2 { font-size: 1.25rem; }
+.no-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; margin-top: 1rem; font-size: .82rem; color: var(--ink-3); }
+.no-legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.lg { width: 16px; height: 16px; border-radius: 5px; display: inline-block; }
+.lg.free { background: #fff; border: 1.5px solid var(--ink); }
+.lg.used { background: var(--canvas); box-shadow: inset 0 -4px 0 #9CA3AF; }
+.board .cell { display: flex; align-items: center; justify-content: center; text-decoration: none; color: var(--ink); }
+.board .cell.free { border-color: #CBD0D8; }
+.board .cell.free:hover { border-color: var(--ink); background: var(--ink); color: #fff; }
+.board .cell.taken { background: var(--canvas); color: #AEB4BE; text-decoration: line-through; border-color: transparent; box-shadow: inset 0 -4px 0 var(--c); overflow: hidden; }
+.no-list { padding: 1.1rem 1.25rem; margin-top: 1rem; }
+.no-list-head { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.no-list h3 { font-size: 1.05rem; }
+.free-text { margin: .6rem 0 0; font: 600 1rem/1.9 var(--head); font-variant-numeric: tabular-nums; word-spacing: .35em; color: var(--ink-2); }
+@media (max-width: 420px) { .no-big { font-size: 2.6rem; } .no-board { padding: 1rem; } .tabs a { padding: .45rem .7rem; font-size: .88rem; } }

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Sports Day Numbers</title>
+  <meta name="description" content="หมายเลขเสื้อ 00–99 ที่ยังเหลือ Sports Day UFicon 2026" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="stripes" aria-hidden="true"><span class="s-blue"></span><span class="s-pink"></span><span class="s-green"></span></div>
+    <div class="hero-inner">
+      <p class="eyebrow">UFicon 2026</p>
+      <h1><span class="shoe" aria-hidden="true">👟</span> Sports Day</h1>
+      <p class="lead">หมายเลขเสื้อที่ยังเหลือ 00–99 — อัปเดตตามแบบฟอร์มที่ส่งเข้ามา</p>
+      <nav class="tabs" aria-label="เมนู"><a href="/">แบบฟอร์มเสื้อ</a><a href="/teams">สมาชิกแต่ละสี</a><a href="/numbers" class="on" aria-current="page">เลขที่เหลือ</a></nav>
+    </div>
+  </header>
+
+  <main id="app" class="wrap numbers-wrap">
+    <div class="loading">กำลังโหลด…</div>
+  </main>
+
+  <footer class="foot">Sports Day UFicon 2026 · หมายเลขจะถูกจองเมื่อส่งแบบฟอร์มแล้วเท่านั้น</footer>
+
+  <div class="modal-back" id="modal" hidden><div class="modal" id="modalBox" role="dialog" aria-modal="true"></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/common.js"></script>
+  <script src="/numbers.js"></script>
+</body>
+</html>

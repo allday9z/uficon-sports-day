@@ -144,6 +144,20 @@ app.get("/api/numbers", async (c) => {
   return c.json({ scope: s.scope, taken: await takenNumbers(sql, team, s) })
 })
 
+/** Every number 00–99 that someone already holds, with the holder's colour — for the เลขที่เหลือ page (Smile, 29 Oct 2026). */
+app.get("/api/numbers/board", async (c) => {
+  const s = await getSettings()
+  const rows = await sql`SELECT team, jersey_no FROM sd_entries ORDER BY created_at, id`
+  const seen = new Set<string>(), taken: { no: string; team: string }[] = []
+  for (const r of rows) {
+    const key = s.scope === "team" ? r.team + ":" + r.jersey_no : r.jersey_no
+    if (seen.has(key)) continue // a clash: the earlier sender holds it
+    seen.add(key)
+    taken.push({ no: r.jersey_no, team: r.team })
+  }
+  return c.json({ scope: s.scope, teams: TEAMS, taken })
+})
+
 app.post("/api/entries", async (c) => {
   if (limited(`entry:${ip(c)}`, 30, 600_000)) return bad(c, "ส่งบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่", 429)
   const s = await getSettings()
@@ -491,13 +505,14 @@ app.get("/api/admin/export.xlsx", async () => {
 // ── static files ──────────────────────────────────────────────────────────────
 const PUB = import.meta.dir + "/../public/"
 const TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", jpg: "image/jpeg", svg: "image/svg+xml", png: "image/png" }
-const STATIC = new Set(["app.js", "admin.js", "common.js", "teams.js", "style.css", "size-chart.jpg", "favicon.svg"])
+const STATIC = new Set(["app.js", "admin.js", "common.js", "teams.js", "numbers.js", "style.css", "size-chart.jpg", "favicon.svg"])
 const file = (name: string) => new Response(Bun.file(PUB + name), { headers: { "Content-Type": TYPES[name.split(".").pop()!]!, "Cache-Control": name.endsWith(".jpg") ? "public, max-age=86400" : "no-cache" } })
 
 app.get("/health", (c) => c.json({ ok: true }))
 app.get("/", () => file("index.html"))
 app.get("/admin", () => file("admin.html"))
 app.get("/teams", () => file("teams.html"))
+app.get("/numbers", () => file("numbers.html"))
 app.get("/:name", (c, next) => (STATIC.has(c.req.param("name")) ? file(c.req.param("name")) : next()))
 app.notFound((c) => (c.req.path.startsWith("/api/") ? bad(c, "not found", 404) : c.redirect("/")))
 app.onError((err, c) => {

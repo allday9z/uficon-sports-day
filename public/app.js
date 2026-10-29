@@ -37,6 +37,12 @@ async function boot() {
       if (e.status === 404) saveMine(null)
     }
   }
+  // Came from the เลขที่เหลือ page: start with that number filled in.
+  const no = new URLSearchParams(location.search).get("no")
+  if (/^[0-9]{2}$/.test(no ?? "")) {
+    state.form.jersey_no = no
+    history.replaceState(null, "", location.pathname)
+  }
   renderForm()
   refreshTaken()
 }

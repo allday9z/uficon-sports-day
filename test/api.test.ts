@@ -55,6 +55,7 @@ describe("public form", () => {
     expect(r.status).toBe(201)
     expect((await r.json()).entry).toMatchObject({ emp_code: "0001", team: "blue", jersey_no: "07" })
     expect((await (await req("/api/numbers")).json()).taken).toEqual(["07"])
+    expect(await (await req("/api/numbers/board")).json()).toMatchObject({ scope: "all", taken: [{ no: "07", team: "blue" }] })
   })
 
   it("refuses a number someone already has, in any colour", async () => {
@@ -113,9 +114,13 @@ describe("admin", () => {
     expect((await req("/api/entries", { body: person({ emp_code: "20", team: "green" }) })).status).toBe(201)
     expect((await req("/api/entries", { body: person({ emp_code: "21", team: "green" }) })).status).toBe(409)
     expect((await (await req("/api/numbers?team=pink")).json()).taken).toEqual([])
+    // Per colour, the เลขที่เหลือ board keeps each colour's own 07.
+    expect(((await (await req("/api/numbers/board")).json()) as any).taken).toEqual([{ no: "07", team: "blue" }, { no: "07", team: "green" }])
     const back = await req("/api/admin/settings", { method: "PATCH", body: { scope: "all" } })
     expect(back.status).toBe(200)
     expect(((await back.json()) as any).conflicts).toBe(1)
+    // Company-wide again: the clash shows only the earlier sender on the board.
+    expect(((await (await req("/api/numbers/board")).json()) as any).taken).toEqual([{ no: "07", team: "blue" }])
     const list = ((await (await req("/api/admin/entries")).json()) as any).entries
     const first = list.find((e: any) => e.emp_code === "0001"), later = list.find((e: any) => e.emp_code === "0020")
     expect(first.dup).toBeNull()
