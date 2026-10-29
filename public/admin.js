@@ -144,7 +144,7 @@ function renderDashboard() {
     </section>`
 
   $("#openSw").onclick = () => saveSettings({ open: !s.open })
-  $$("[data-scope]").forEach((b) => (b.onclick = () => b.dataset.scope !== s.scope && saveSettings({ scope: b.dataset.scope })))
+  $$("[data-scope]").forEach((b) => (b.onclick = () => { if (b.dataset.scope !== s.scope) saveSettings({ scope: b.dataset.scope }) }))
   $("#reload").onclick = () => loadDashboard()
   $("#q").oninput = (e) => { A.q = e.target.value; renderList() }
   $$(".chip").forEach((c) => (c.onclick = () => {

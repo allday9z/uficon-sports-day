@@ -71,7 +71,9 @@ function openModal(html, { wide = false } = {}) {
   }
   const onKey = (e) => e.key === "Escape" && close()
   document.addEventListener("keydown", onKey)
-  back.onclick = (e) => e.target === back && close()
+  // Block body on purpose: an on-click handler that returns false cancels the click,
+  // which stopped every บันทึก (submit) button inside the pop-up (Smile, 29 Oct 2026).
+  back.onclick = (e) => { if (e.target === back) close() }
   $$("[data-close]", box).forEach((b) => (b.onclick = close))
   return close
 }
